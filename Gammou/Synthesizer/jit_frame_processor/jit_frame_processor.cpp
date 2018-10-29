@@ -24,7 +24,6 @@ namespace Gammou {
          : m_memory(42)
         {
 			m_program = (uint8_t*)alloc_executable(PROGRAM_SIZE);
-			DEBUG_PRINT("OK\n");
             clear_program();
         }
 
@@ -141,6 +140,25 @@ namespace Gammou {
         }
 
         /*
+
+        */
+
+        void jit_frame_processor::__fetch_output(
+            Process::abstract_component<double> *component,
+            const unsigned int output_id,
+            double *dest)
+        {
+            *dest = component->fetch_output(output_id);
+        }
+
+        void jit_frame_processor::__process(
+            Process::abstract_component<double> *component,
+            const double *input)
+        {
+            component->process(input);
+        }
+
+        /*
             Instruction Writing
         */
 
@@ -221,34 +239,16 @@ namespace Gammou {
 #ifdef __linux__
 			const uint8_t code_chunk[] = 
             {
-                0x48, 0x8b, 0x07,           //  movq (%rdi), %rax
-                0x52,                       //  pushq %rdx
-                0xff, 0x50, 0x10,           //  callq *0x10(%rax)
-                0x5a,                       //  popq %rdx
-                0xf2, 0x0f, 0x11, 0x02      //  movsd %xmm0, (%rdx)
+                0xff, 0xd0      //  callq *%rax
             };
 
             add_mov_ptr_rdi(component);
             add_mov_int_esi(output_id);
             add_mov_ptr_rdx(mem_pos);
+            add_mov_ptr_rax(reinterpret_cast<void*>(__fetch_output));
 
 #elif defined(_WIN32)
-			return;
-			const uint8_t code_chunk[] =
-			{
-				0x40, 0x53,	
-				0x48, 0x83, 0xec, 0x20,
-				0x48, 0x8b, 0x01,
-				0x49, 0x8b, 0xd8,
-				0xff, 0x50, 0x08,
-				0xf2, 0x0f, 0x11, 0x03,
-				0x48, 0x83, 0xc4, 0x20,
-				0x5b
-			};
-
-			add_mov_ptr_rcx(component);
-			add_mov_int_rdx(output_id);
-			add_mov_ptr_r8(mem_pos);
+#error "not implemented"
 #endif
             add_program_chunk(code_chunk, sizeof(code_chunk));
         }
@@ -264,13 +264,7 @@ namespace Gammou {
 
             add_mov_ptr_rdi(mem_pos);
 #elif defined(_WIN32)
-			const uint8_t code_chunk[] = 
-			{
-				0x48, 0xc7, 0x01, 0x00,		//	movq $0, (%rcx)
-				0x00, 0x00, 0x00
-			};
-
-			add_mov_ptr_rcx(mem_pos);
+#error "not implemented"
 #endif
             add_program_chunk(code_chunk, sizeof(code_chunk));
         }
@@ -280,25 +274,17 @@ namespace Gammou {
 #ifdef __linux__
             const uint8_t code_chunk[] =
             {
-                0x48, 0x8b, 0x07,	// movq (%rdi), %rax
-				0xff, 0x50, 0x18	// callq *0x18(%rax)
+                0xff, 0xd0 //  callq *%rax
             };
 
             add_mov_ptr_rdi(component);
             add_mov_ptr_rsi(input);
-#elif defined(_WIN32)
-			const uint8_t code_chunk[] = 
-			{
-				0x48, 0x8b, 0x01,		// movq (%rcx), %rax
-				0x48, 0x83, 0xec, 0x28,	// sub 0x28, %rsp
-				0xff, 0x50, 0x10,		// callq *0x10(%rax)
-				0x48, 0x83, 0xc4, 0x28	// add 0x28, %rsp
-			};
+            add_mov_ptr_rax(reinterpret_cast<void*>(__process));
 
-			add_mov_ptr_rcx(component);
-			add_mov_ptr_rdx(input);
+#elif defined(_WIN32)
+#error "not implemented"
 #endif
-			add_program_chunk(code_chunk, sizeof(code_chunk));
+            add_program_chunk(code_chunk, sizeof(code_chunk));
         }
 
 
@@ -308,28 +294,3 @@ namespace Gammou {
 } /* Gammou */ 
 
 
-extern "C" {
-
-	void fetch_output_SAMPLE(
-		Gammou::Process::abstract_component<double> *component, 
-		const unsigned int output_id,
-		double *mem_pos)
-	{
-		*mem_pos = component->fetch_output(output_id);
-	}
-
-	void process_SAMPLE(
-		Gammou::Process::abstract_component<double> *component,
-		double *input)
-	{
-		component->process(input);
-	}
-
-	void *process_sample2()
-	{
-		process_SAMPLE((Gammou::Process::abstract_component<double> *)0xAABBCCDDAABBCCDD, (double*)0xAABBCCDDEEFF0011);
-		return (void*)0x4242424242424242;
-	}
-
-
-}

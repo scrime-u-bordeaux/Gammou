@@ -35,6 +35,19 @@ namespace Gammou {
                 void free_executable(void *mem, const size_t size);
 
                 /*
+
+                */
+
+                static void __fetch_output(
+                    Process::abstract_component<double> *component,
+                    const unsigned int output_id,
+                    double *input);
+
+                static void __process(
+                    Process::abstract_component<double> *component,
+                    const double *data);
+
+                /*
                     Instructions writing 
                 */
 

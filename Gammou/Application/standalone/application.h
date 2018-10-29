@@ -11,6 +11,8 @@
 #include "../audio_backend/abstract_audio_backend.h"
 #include "setting_widget.h"
 
+#include "jit_frame_processor/jit_frame_processor.h"
+
 #define GAMMOU_STANDALONE_INPUT_COUNT 2
 #define GAMMOU_STANDALONE_OUTPUT_COUNT 2
 #define GAMMOU_STANDALONE_CHANNEL_COUNT 128
@@ -60,10 +62,16 @@ namespace Gammou {
 
                 std::unique_ptr<RtAudio> m_audio{};
                 std::mutex m_synthesizer_mutex;
+
+/*
                 Process::bytecode_frame_processor<double>
                     m_master_circuit_processor;
                 Process::bytecode_frame_processor<double>
                     m_polyphonic_circuit_processor;
+  */
+                Sound::jit_frame_processor m_master_circuit_processor;
+                Sound::jit_frame_processor m_polyphonic_circuit_processor;
+
                 Sound::synthesizer m_synthesizer;
         };
 
